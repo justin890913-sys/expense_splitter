@@ -23,7 +23,7 @@ function App() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="浸9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
               </div>
-              <span className="font-bold text-xl text-gray-800 tracking-tight">分錢小幫手</span>
+              <span className="font-bold text-xl text-gray-800 tracking-tight">旅遊分攤小幫手</span>
             </Link>
 
             {/* 右側按鈕連結 */}
@@ -73,3 +73,4 @@ function App() {
 }
 
 export default App;
+
