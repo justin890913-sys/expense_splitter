@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 // Firebase 引入 (請確保你已建立 src/firebase.ts)
-import { auth, db, googleProvider } from "./src/firebase";
+import { auth, db, googleProvider } from "../firebase";
 import { signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { 
   doc, 
@@ -328,6 +328,7 @@ export default function ExpenseSplitter() {
     </div>
   );
 }
+
 
 
 
