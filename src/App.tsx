@@ -1,56 +1,63 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { onAuthStateChanged, User } from "firebase/auth";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { Calculator, Home, Info, Menu } from 'lucide-react';
+import Index from './pages/Index';
+import CalculatorPage from './pages/Calculator';
+import About from './pages/About';
 
-// 正確導入路徑
-import { auth } from "./firebase"; 
-import ExpenseSplitter from "./components/ExpenseSplitter";
-import Home from "./pages/Home";
-import About from "./pages/About";
-import Privacy from "./pages/Privacy";
-import Contact from "./pages/Contact";
-
-export default function App() {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-    });
-    return () => unsubscribe();
-  }, []);
-
+function App() {
   return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        {/* 路由內容區 */}
-        <div className="flex-grow">
-          <Routes>
-            {/* 首頁 */}
-            <Route path="/" element={<Home />} />
-            
-            {/* 隱私權政策與其他頁面 */}
-            <Route path="/about" element={<About />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/contact" element={<Contact />} />
-          </Routes>
-        </div>
+    <Router>
+      <div className="min-h-screen bg-gray-50">
+        {/* 全域導覽列 */}
+        <nav className="bg-white shadow-md sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="flex justify-between items-center h-16">
+              {/* Logo 區域 */}
+              <div className="flex items-center gap-2">
+                <Calculator className="w-6 h-6 text-indigo-600" />
+                <span className="font-bold text-xl text-gray-800 tracking-tight">分分計較</span>
+              </div>
 
-        {/* 頁尾：確保使用者隨時能找到隱私權政策 */}
-        <footer className="bg-white border-t py-10 mt-auto">
-          <div className="max-w-2xl mx-auto px-4">
-            <div className="flex justify-center gap-8 mb-4 text-sm font-semibold text-gray-500">
-              <Link to="/" className="hover:text-indigo-600 transition-colors">回首頁</Link>
-              <Link to="/about" className="hover:text-indigo-600 transition-colors">關於我們</Link>
-              <Link to="/privacy" className="hover:text-indigo-600 transition-colors">隱私權政策</Link>
-              <Link to="/contact" className="hover:text-indigo-600 transition-colors">聯繫我們</Link>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-gray-400">© 2026 費用分攤器. All rights reserved.</p>
+              {/* 連結區域 - 桌面版 */}
+              <div className="hidden md:flex items-center gap-6">
+                <Link to="/" className="flex items-center gap-1 text-gray-600 hover:text-indigo-600 font-medium transition">
+                  <Home className="w-4 h-4" /> 首頁
+                </Link>
+                <Link to="/calculator" className="flex items-center gap-1 text-gray-600 hover:text-indigo-600 font-medium transition">
+                  <Calculator className="w-4 h-4" /> 計算器
+                </Link>
+                <Link to="/about" className="flex items-center gap-1 text-gray-600 hover:text-indigo-600 font-medium transition">
+                  <Info className="w-4 h-4" /> 關於我們
+                </Link>
+              </div>
+
+              {/* 行動版選單按鈕 - 簡易版 */}
+              <div className="md:hidden">
+                <Menu className="w-6 h-6 text-gray-600" />
+              </div>
             </div>
           </div>
-        </footer>
+          
+          {/* 行動版副導覽 (方便手機點擊) */}
+          <div className="md:hidden flex border-t border-gray-100 bg-white">
+            <Link to="/" className="flex-1 py-3 text-center text-xs font-bold text-gray-600 border-r border-gray-100">首頁</Link>
+            <Link to="/calculator" className="flex-1 py-3 text-center text-xs font-bold text-gray-600 border-r border-gray-100">計算器</Link>
+            <Link to="/about" className="flex-1 py-3 text-center text-xs font-bold text-gray-600">關於</Link>
+          </div>
+        </nav>
+
+        {/* 頁面內容 */}
+        <main className="transition-all duration-300">
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/calculator" element={<CalculatorPage />} />
+            <Route path="/about" element={<About />} />
+          </Routes>
+        </main>
       </div>
-    </BrowserRouter>
+    </Router>
   );
 }
+
+export default App;
