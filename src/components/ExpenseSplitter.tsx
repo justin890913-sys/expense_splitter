@@ -155,31 +155,45 @@ export default function ExpenseSplitter() {
   };
 
   // --- 4. UI 元件：導覽列 (保證登入按鈕在此) ---
+  // 在 ExpenseSplitter 函數內定義
   const Navbar = () => (
     <nav className="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-indigo-50">
+      {/* 左側標誌 */}
       <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView("list")}>
-        <div className="bg-indigo-600 p-2 rounded-lg shadow-indigo-200 shadow-lg">
+        <div className="bg-indigo-600 p-2 rounded-lg">
           <Calculator className="w-5 h-5 text-white" />
         </div>
-        <h1 className="font-bold text-gray-800 text-lg hidden sm:block">雲端分攤器</h1>
+        <h1 className="font-bold text-gray-800 text-lg">雲端分攤器</h1>
       </div>
 
-      <div className="flex items-center gap-3">
+      {/* 右側按鈕區 */}
+      <div className="flex items-center">
         {user ? (
+          /* 已登入：顯示頭像與登出 */
           <div className="flex items-center gap-3 bg-indigo-50 pl-3 pr-1 py-1 rounded-full border border-indigo-100">
-            <span className="text-sm font-medium text-indigo-700 hidden md:block">{user.displayName}</span>
-            <img src={user.photoURL || ""} className="w-8 h-8 rounded-full border-2 border-white" />
-            <button onClick={handleLogout} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+            <span className="text-sm font-medium text-indigo-700 hidden sm:block">
+              {user.displayName}
+            </span>
+            <img 
+              src={user.photoURL || ""} 
+              className="w-8 h-8 rounded-full border-2 border-white" 
+              alt="User"
+            />
+            <button 
+              onClick={handleLogout} 
+              className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+            >
               <LogOut className="w-4 h-4" />
             </button>
           </div>
         ) : (
+          /* 未登入：強制顯示登入按鈕 */
           <button 
             onClick={handleLogin}
-            className="flex items-center gap-2 px-5 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-all shadow-sm active:scale-95 text-gray-700 font-bold text-sm"
           >
             <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="G" />
-            <span className="text-sm font-bold text-gray-700">Google 登入</span>
+            登入
           </button>
         )}
       </div>
@@ -314,5 +328,6 @@ export default function ExpenseSplitter() {
     </div>
   );
 }
+
 
 
