@@ -54,14 +54,6 @@ export default function ExpenseSplitter() {
   const [view, setView] = useState<ViewMode>("list");
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [records, setRecords] = useState<RecordListItem[]>([]);
-
-  // 在 ExpenseSplitter.tsx 內部
-useEffect(() => {
-  const user = auth.currentUser;
-  if (user) {
-    // 執行之前幫你寫的 loadRecordsFromCloud(user.uid);
-  }
-}, []);
   
   // 編輯器狀態
   const [recordName, setRecordName] = useState<string>("");
@@ -322,4 +314,5 @@ useEffect(() => {
     </div>
   );
 }
+
 
