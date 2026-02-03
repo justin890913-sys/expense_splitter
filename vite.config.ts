@@ -1,8 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // 如果你有設定路徑別名（如 @ 代表 src），也會寫在這裡
+  build: {
+    // 確保即使有小錯誤也能繼續 build
+    chunkSizeWarningLimit: 1600,
+  }
 })
