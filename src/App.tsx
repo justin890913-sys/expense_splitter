@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 // Firebase 配置引用 (請確保路徑正確)
-import { auth, db, googleProvider } from "../firebase";
+import { auth, db, googleProvider } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { 
   doc, 
@@ -330,3 +330,4 @@ export default function ExpenseSplitter() {
     </div>
   );
 }
+
