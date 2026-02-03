@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { 
   Calculator, LogIn, LogOut, PlusCircle, Cloud, 
-  ChevronRight, ArrowLeft, Users, DollarSign, Save, Trash2, CheckCircle2
+  ChevronRight, ArrowLeft, Users, DollarSign, Save, Trash2, CheckCircle2, Loader2
 } from "lucide-react";
 
 // Firebase 配置
@@ -33,54 +33,97 @@ export default function ExpenseSplitter() {
     { payer: "", amount: "", description: "", participants: [] }
   ]);
   const [currentId, setCurrentId] = useState<string | null>(null);
-  const [autoSaving, setAutoSaving] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const banks = ["台灣銀行", "土地銀行", "第一銀行", "華南銀行", "彰化銀行", "兆豐銀行", "國泰世華", "中國信託", "玉山銀行", "台北富邦", "台新銀行", "其他"];
+  const banks = ["台灣銀行", "土地銀行", "第一銀行", "華南銀行", "彰化銀行", "兆豐銀行", "國泰世華", "中國信託", "玉山銀行", "台北富邦", "台新銀行", "LINE Bank", "其他"];
 
+  // 監聽登入
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
-      if (u) fetchRecords(u.uid);
+      if (u) {
+        fetchRecords(u.uid);
+      } else {
+        setRecords([]);
+      }
     });
     return () => unsub();
   }, []);
 
   const fetchRecords = async (uid: string) => {
     try {
-      const q = query(collection(db, "records"), where("userId", "==", uid), orderBy("updatedAt", "desc"));
+      const q = query(
+        collection(db, "records"), 
+        where("userId", "==", uid), 
+        orderBy("updatedAt", "desc")
+      );
       const snap = await getDocs(q);
-      setRecords(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    } catch (e) { console.error(e); }
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setRecords(data);
+    } catch (e) { 
+      console.error("讀取失敗:", e); 
+    }
   };
 
-  const handleLogin = () => signInWithPopup(auth, googleProvider);
+  const handleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (e) {
+      alert("Google 登入失敗");
+    }
+  };
+
   const handleLogout = () => signOut(auth).then(() => { setView("list"); setRecords([]); });
 
+  // --- 修正後的儲存函式 ---
   const saveToCloud = async () => {
-    if (!user) return alert("請先登入以儲存紀錄");
-    setAutoSaving(true);
-    const id = currentId || Date.now().toString(36);
-    await setDoc(doc(db, "records", id), {
+    if (!user) {
+      alert("請先登入帳號");
+      return;
+    }
+
+    setIsSaving(true);
+    // 如果沒有 currentId，就生一個新的隨機 ID
+    const id = currentId || doc(collection(db, "records")).id;
+    
+    const saveData = {
       userId: user.uid,
       name: recordName || "未命名紀錄",
-      members,
-      expenses,
+      members: members.filter(m => m.name !== ""), // 只存有名字的成員
+      expenses: expenses,
       updatedAt: new Date().toISOString()
-    });
-    setCurrentId(id);
-    fetchRecords(user.uid);
-    setAutoSaving(false);
+    };
+
+    try {
+      await setDoc(doc(db, "records", id), saveData);
+      setCurrentId(id);
+      await fetchRecords(user.uid);
+      alert("儲存成功！");
+    } catch (e: any) {
+      console.error("儲存失敗錯誤詳情:", e);
+      if (e.code === 'permission-denied') {
+        alert("儲存失敗：Firebase 資料庫權限不足。請檢查 Security Rules。");
+      } else {
+        alert("儲存失敗：" + e.message);
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const openRecord = async (id: string) => {
-    const snap = await getDoc(doc(db, "records", id));
-    if (snap.exists()) {
-      const d = snap.data();
-      setRecordName(d.name);
-      setMembers(d.members || []);
-      setExpenses(d.expenses || []);
-      setCurrentId(id);
-      setView("editor");
+    try {
+      const snap = await getDoc(doc(db, "records", id));
+      if (snap.exists()) {
+        const d = snap.data();
+        setRecordName(d.name || "");
+        setMembers(d.members || [{ name: "", bank: "" }]);
+        setExpenses(d.expenses || [{ payer: "", amount: "", description: "", participants: [] }]);
+        setCurrentId(id);
+        setView("editor");
+      }
+    } catch (e) {
+      alert("讀取紀錄失敗");
     }
   };
 
@@ -93,12 +136,10 @@ export default function ExpenseSplitter() {
       const amount = parseFloat(exp.amount) || 0;
       if (amount <= 0 || !exp.payer || exp.participants.length === 0) return;
 
-      // 付款人增加餘額
       balances[exp.payer] += amount;
-      // 參與者平分支出
       const share = amount / exp.participants.length;
       exp.participants.forEach(p => {
-        balances[p] -= share;
+        if (balances[p] !== undefined) balances[p] -= share;
       });
     });
 
@@ -141,7 +182,7 @@ export default function ExpenseSplitter() {
         <div className="max-w-2xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView("list")}>
             <div className="bg-indigo-600 p-1.5 rounded-lg"><Calculator className="text-white w-5 h-5" /></div>
-            <span className="font-bold text-lg">旅遊費用分攤計算器</span>
+            <span className="font-bold text-lg">費用分攤器</span>
           </div>
           {user ? (
             <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-full pr-3">
@@ -158,15 +199,24 @@ export default function ExpenseSplitter() {
         {view === "list" ? (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="font-bold text-xl">我的紀錄</h2>
-              <button onClick={() => { setView("editor"); setCurrentId(null); setRecordName(""); setMembers([{name:"", bank:""}]); setExpenses([{payer:"", amount:"", description:"", participants:[]}]); }} className="bg-white border px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1 hover:bg-gray-50">
+              <h2 className="font-bold text-xl text-gray-800">我的雲端紀錄</h2>
+              <button 
+                onClick={() => { 
+                  setView("editor"); 
+                  setCurrentId(null); 
+                  setRecordName(""); 
+                  setMembers([{name:"", bank:""}]); 
+                  setExpenses([{payer:"", amount:"", description:"", participants:[]}]); 
+                }} 
+                className="bg-white border px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1 hover:bg-gray-50"
+              >
                 <PlusCircle className="w-4 h-4" /> 新增
               </button>
             </div>
             {!user ? (
-              <div className="bg-white border-2 border-dashed rounded-3xl p-12 text-center">
+              <div className="bg-white border-2 border-dashed rounded-3xl p-12 text-center border-gray-200">
                 <Cloud className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <button onClick={handleLogin} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-bold">Google 登入</button>
+                <button onClick={handleLogin} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg">Google 登入</button>
               </div>
             ) : records.length === 0 ? (
               <div className="bg-white rounded-2xl p-12 text-center text-gray-400 border">尚無紀錄</div>
@@ -188,12 +238,17 @@ export default function ExpenseSplitter() {
           <div className="space-y-6">
             <div className="bg-white rounded-3xl shadow-sm border p-6">
               <div className="flex justify-between items-center mb-6">
-                <button onClick={() => setView("list")} className="flex items-center gap-1 text-gray-400 text-sm"><ArrowLeft className="w-4 h-4" /> 返回</button>
-                <button onClick={saveToCloud} className="text-indigo-600 text-sm font-bold flex items-center gap-1">
-                  {autoSaving ? "儲存中..." : <><Save className="w-4 h-4" /> 儲存</>}
+                <button onClick={() => setView("list")} className="flex items-center gap-1 text-gray-400 text-sm font-medium"><ArrowLeft className="w-4 h-4" /> 返回</button>
+                <button 
+                  onClick={saveToCloud} 
+                  disabled={isSaving}
+                  className="text-indigo-600 text-sm font-bold flex items-center gap-1 bg-indigo-50 px-4 py-2 rounded-xl hover:bg-indigo-100 disabled:opacity-50"
+                >
+                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  儲存到雲端
                 </button>
               </div>
-              <input className="text-2xl font-black w-full mb-6 border-b-2 border-transparent focus:border-indigo-100 outline-none pb-2" placeholder="行程名稱..." value={recordName} onChange={(e) => setRecordName(e.target.value)} />
+              <input className="text-2xl font-black w-full mb-6 border-b-2 border-transparent focus:border-indigo-100 outline-none pb-2" placeholder="行程名稱 (例如: 台中遊)" value={recordName} onChange={(e) => setRecordName(e.target.value)} />
 
               <section className="mb-8">
                 <h3 className="flex items-center gap-2 font-bold text-gray-700 mb-4"><Users className="w-4 h-4 text-indigo-500" /> 成員與銀行</h3>
@@ -211,7 +266,7 @@ export default function ExpenseSplitter() {
                     <button onClick={() => setMembers(members.filter((_, idx) => idx !== i))} className="text-gray-300 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 ))}
-                <button onClick={() => setMembers([...members, { name: "", bank: "" }])} className="w-full py-2 border-2 border-dashed border-gray-100 rounded-xl text-gray-400 text-xs font-bold">+ 新增成員</button>
+                <button onClick={() => setMembers([...members, { name: "", bank: "" }])} className="w-full py-2 border-2 border-dashed border-gray-100 rounded-xl text-gray-400 text-xs font-bold mt-2">+ 新增成員</button>
               </section>
 
               <section className="mb-8">
@@ -229,7 +284,7 @@ export default function ExpenseSplitter() {
                         const next = [...expenses]; next[i].amount = e.target.value; setExpenses(next);
                       }} />
                     </div>
-                    <input placeholder="描述 (例如：晚餐、車資)" className="w-full bg-white rounded-lg px-3 py-2 text-sm outline-none border border-gray-100" value={exp.description} onChange={(e) => {
+                    <input placeholder="描述 (例如: 晚餐、門票)" className="w-full bg-white rounded-lg px-3 py-2 text-sm outline-none border border-gray-100" value={exp.description} onChange={(e) => {
                       const next = [...expenses]; next[i].description = e.target.value; setExpenses(next);
                     }} />
                     <div className="flex flex-wrap gap-2 pt-1">
@@ -247,31 +302,30 @@ export default function ExpenseSplitter() {
                         </button>
                       ))}
                     </div>
-                    <button onClick={() => setExpenses(expenses.filter((_, idx) => idx !== i))} className="text-xs text-red-400 font-medium">刪除此項</button>
+                    <button onClick={() => setExpenses(expenses.filter((_, idx) => idx !== i))} className="text-xs text-red-400 font-medium pt-1">刪除此筆費用</button>
                   </div>
                 ))}
-                <button onClick={() => setExpenses([...expenses, { payer: "", amount: "", description: "", participants: [] }])} className="w-full py-2 border-2 border-dashed border-gray-100 rounded-xl text-gray-400 text-xs font-bold">+ 新增費用</button>
+                <button onClick={() => setExpenses([...expenses, { payer: "", amount: "", description: "", participants: [] }])} className="w-full py-2 border-2 border-dashed border-gray-100 rounded-xl text-gray-400 text-xs font-bold">+ 新增支出</button>
               </section>
             </div>
 
-            {/* 分攤結果區 */}
-            <div className="bg-indigo-900 rounded-3xl p-6 text-white shadow-xl shadow-indigo-200">
-              <h3 className="flex items-center gap-2 font-bold mb-6 text-indigo-200"><CheckCircle2 className="w-5 h-5" /> 分攤結算結果</h3>
+            <div className="bg-indigo-900 rounded-3xl p-6 text-white shadow-xl">
+              <h3 className="flex items-center gap-2 font-bold mb-6 text-indigo-200"><CheckCircle2 className="w-5 h-5" /> 結算明細</h3>
               {finalResults && finalResults.length > 0 ? (
                 <div className="space-y-4">
                   {finalResults.map((res, i) => (
                     <div key={i} className="flex justify-between items-center bg-indigo-800/50 p-4 rounded-2xl border border-indigo-700/50">
                       <div>
-                        <div className="text-sm text-indigo-300">{res.from} 應該給</div>
-                        <div className="font-bold text-lg">{res.to}</div>
-                        {res.bank && <div className="text-xs text-indigo-400 mt-1">({res.bank})</div>}
+                        <div className="text-sm text-indigo-300">{res.from} ➔ {res.to}</div>
+                        <div className="font-bold text-lg">需付 ${res.amount}</div>
+                        {res.bank && <div className="text-xs text-indigo-400 mt-1">銀行：{res.bank}</div>}
                       </div>
                       <div className="text-2xl font-black text-yellow-400">${res.amount}</div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6 text-indigo-300 text-sm">請輸入費用以計算結果</div>
+                <div className="text-center py-6 text-indigo-300 text-sm italic">請先輸入成員與費用清單</div>
               )}
             </div>
           </div>
@@ -280,4 +334,3 @@ export default function ExpenseSplitter() {
     </div>
   );
 }
-
