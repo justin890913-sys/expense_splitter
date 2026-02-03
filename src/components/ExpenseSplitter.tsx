@@ -56,7 +56,7 @@ export default function ExpenseSplitter() {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (e) {
-      alert("登入失敗");
+      alert("登入失敗: " + e.message);
     }
   };
 
@@ -93,8 +93,11 @@ export default function ExpenseSplitter() {
   const saveRecord = async () => {
     if (!user) return alert("請先登入帳號");
     const name = recordName || '未命名紀錄';
-    const id = currentId || doc(collection(db, "records")).id;
     
+    // 關鍵修正：如果是新紀錄，先生成一個 Firestore 的 ID
+    const docRef = currentId ? doc(db, "records", currentId) : doc(collection(db, "records"));
+    const newId = docRef.id;
+
     const recordData = {
       userId: user.uid,
       name,
@@ -105,13 +108,14 @@ export default function ExpenseSplitter() {
 
     try {
       setAutoSaving(true);
-      await setDoc(doc(db, "records", id), recordData);
-      setCurrentId(id);
-      window.location.hash = id;
+      await setDoc(docRef, recordData);
+      setCurrentId(newId);
+      window.location.hash = newId;
       await loadRecordsList(user.uid);
       alert('儲存成功！');
     } catch (e) {
-      alert('儲存失敗');
+      console.error("儲存失敗詳情:", e);
+      alert('儲存失敗：' + (e.code === 'permission-denied' ? '資料庫權限不足' : e.message));
     } finally {
       setAutoSaving(false);
     }
@@ -132,7 +136,6 @@ export default function ExpenseSplitter() {
     try {
       setAutoSaving(true);
       await setDoc(doc(db, "records", currentId), recordData);
-      // 更新本地列表狀態，不重新 fetch 以維持效能
       setRecords(prev => prev.map(r => r.id === currentId ? { ...r, name, updatedAt: recordData.updatedAt } : r));
       setTimeout(() => setAutoSaving(false), 1000);
     } catch (e) {
@@ -247,11 +250,16 @@ export default function ExpenseSplitter() {
                 <Calculator className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600" />
                 <h1 className="text-lg sm:text-2xl font-bold text-gray-800">費用分攤計算器</h1>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 {user ? (
-                  <button onClick={handleLogout} className="text-xs font-bold text-gray-400 mr-2">登出</button>
+                  <div className="flex items-center gap-2">
+                    <img src={user.photoURL} alt="avatar" className="w-8 h-8 rounded-full border" />
+                    <button onClick={handleLogout} className="text-xs font-bold text-gray-400 hover:text-red-500">登出</button>
+                  </div>
                 ) : (
-                  <button onClick={handleLogin} className="bg-indigo-600 text-white px-3 py-1 rounded-lg text-xs font-bold">Google 登入</button>
+                  <button onClick={handleLogin} className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-700 transition flex items-center gap-1">
+                    <LogIn className="w-3 h-3" /> Google 登入
+                  </button>
                 )}
                 <button
                   onClick={createNewRecord}
@@ -266,10 +274,12 @@ export default function ExpenseSplitter() {
             <div>
               <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-4">所有計算紀錄</h2>
               {!user ? (
-                <div className="text-center py-12 border-2 border-dashed rounded-xl">
+                <div className="text-center py-12 border-2 border-dashed rounded-2xl bg-white/50">
                   <Cloud className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 mb-4">請先登入以同步雲端紀錄</p>
-                  <button onClick={handleLogin} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold">Google 帳號登入</button>
+                  <p className="text-gray-500 mb-4 font-medium">請先登入以同步雲端紀錄</p>
+                  <button onClick={handleLogin} className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:scale-105 transition active:scale-95">
+                    使用 Google 帳號登入
+                  </button>
                 </div>
               ) : records.length === 0 ? (
                 <div className="text-center py-12">
@@ -285,7 +295,7 @@ export default function ExpenseSplitter() {
                   {records.map((record) => (
                     <div key={record.id} className="flex gap-2">
                       <div
-                        className="flex-1 p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-300 transition cursor-pointer"
+                        className="flex-1 p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-300 transition cursor-pointer bg-white shadow-sm"
                         onClick={() => openRecord(record.id)}
                       >
                         <h3 className="font-semibold text-base text-gray-800 truncate">{record.name}</h3>
@@ -365,7 +375,7 @@ export default function ExpenseSplitter() {
               }`}
             >
               <Save className="w-4 h-4" />
-              {autoSaving ? '儲存中...' : currentId ? '已儲存到雲端' : '儲存到雲端'}
+              {autoSaving ? '儲存中...' : currentId ? '更新計算紀錄' : '儲存到雲端'}
             </button>
           </div>
         </div>
