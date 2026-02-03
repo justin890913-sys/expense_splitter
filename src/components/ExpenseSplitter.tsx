@@ -17,6 +17,7 @@ export default function ExpenseSplitter() {
   const [recordName, setRecordName] = useState('');
   const [autoSaving, setAutoSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // 儲存要刪除的紀錄ID
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const banks = ['台灣銀行', '土地銀行', '合作金庫', '第一銀行', '華南銀行', '彰化銀行', '兆豐銀行', '台灣企銀', '國泰世華', '中國信託', '玉山銀行', '台北富邦', '國泰銀行', '高雄銀行', '台新銀行', '永豐銀行', '聯邦銀行', '遠東銀行', '元大銀行', '其他'];
 
@@ -91,35 +92,45 @@ export default function ExpenseSplitter() {
   };
 
   const saveRecord = async () => {
-    if (!user) return alert("請先登入帳號");
-    const name = recordName || '未命名紀錄';
-    
-    // 關鍵修正：如果是新紀錄，先生成一個 Firestore 的 ID
-    const docRef = currentId ? doc(db, "records", currentId) : doc(collection(db, "records"));
-    const newId = docRef.id;
+  if (!user) return alert("請先登入帳號");
+  const name = recordName || '未命名紀錄';
+  
+  const docRef = currentId ? doc(db, "records", currentId) : doc(collection(db, "records"));
+  const newId = docRef.id;
 
-    const recordData = {
-      userId: user.uid,
-      name,
-      members,
-      expenses,
-      updatedAt: new Date().toISOString()
-    };
-
-    try {
-      setAutoSaving(true);
-      await setDoc(docRef, recordData);
-      setCurrentId(newId);
-      window.location.hash = newId;
-      await loadRecordsList(user.uid);
-      alert('儲存成功！');
-    } catch (e) {
-      console.error("儲存失敗詳情:", e);
-      alert('儲存失敗：' + (e.code === 'permission-denied' ? '資料庫權限不足' : e.message));
-    } finally {
-      setAutoSaving(false);
-    }
+  const recordData = {
+    userId: user.uid,
+    name,
+    members,
+    expenses,
+    updatedAt: new Date().toISOString()
   };
+
+  try {
+    setAutoSaving(true);
+    setSaveSuccess(false); // 開始儲存前先重置成功狀態
+    
+    await setDoc(docRef, recordData);
+    
+    setCurrentId(newId);
+    window.location.hash = newId;
+    await loadRecordsList(user.uid);
+    
+    // 儲存成功後的邏輯
+    setSaveSuccess(true);
+    
+    // 3 秒後自動切換回原本的文字
+    setTimeout(() => {
+      setSaveSuccess(false);
+    }, 3000);
+
+  } catch (e) {
+    console.error("儲存失敗詳情:", e);
+    alert('儲存失敗：' + (e.code === 'permission-denied' ? '資料庫權限不足' : e.message));
+  } finally {
+    setAutoSaving(false);
+  }
+};
 
   const autoSaveRecord = async () => {
     if (!user || !currentId) return; 
@@ -368,15 +379,38 @@ export default function ExpenseSplitter() {
               className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
             />
             <button
-              onClick={saveRecord}
-              disabled={autoSaving}
-              className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm transition ${
-                autoSaving ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'
-              }`}
-            >
-              <Save className="w-4 h-4" />
-              {autoSaving ? '儲存中...' : currentId ? '更新計算紀錄' : '儲存到雲端'}
-            </button>
+    onClick={saveRecord}
+    disabled={autoSaving}
+    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+      saveSuccess 
+        ? 'bg-green-100 text-green-700 border border-green-500' // 儲存成功後的樣式
+        : autoSaving 
+          ? 'bg-gray-400 cursor-not-allowed text-white' 
+          : 'bg-green-600 hover:bg-green-700 text-white shadow-md active:scale-95'
+    }`}
+  >
+    {autoSaving ? (
+      <>
+        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        儲存中...
+      </>
+    ) : saveSuccess ? (
+      <>
+        <Check className="w-4 h-4" />
+        已更新計算
+      </>
+    ) : currentId ? (
+      <>
+        <Save className="w-4 h-4" />
+        更新計算紀錄
+      </>
+    ) : (
+      <>
+        <Cloud className="w-4 h-4" />
+        儲存到雲端
+      </>
+    )}
+  </button>
           </div>
         </div>
 
@@ -576,3 +610,4 @@ export default function ExpenseSplitter() {
     </div>
   );
 }
+
