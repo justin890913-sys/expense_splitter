@@ -18,7 +18,7 @@ const AdBanner = ({ dataAdSlot }: AdBannerProps) => {
     <div className="my-4 flex justify-center overflow-hidden">
       <ins className="adsbygoogle"
            style={{ display: 'block' }}
-           data-ad-client="ca-pub-YOUR_PUB_ID" // 替換成你的 ID
+           data-ad-client="ca-pub-8929632939417590" // 替換成你的 ID
            data-ad-slot={dataAdSlot}
            data-ad-format="auto"
            data-full-width-responsive="true"></ins>
