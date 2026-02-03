@@ -141,7 +141,7 @@ export default function ExpenseSplitter() {
         <div className="max-w-2xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView("list")}>
             <div className="bg-indigo-600 p-1.5 rounded-lg"><Calculator className="text-white w-5 h-5" /></div>
-            <span className="font-bold text-lg">費用分攤器</span>
+            <span className="font-bold text-lg">旅遊費用分攤計算器</span>
           </div>
           {user ? (
             <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-full pr-3">
@@ -190,7 +190,7 @@ export default function ExpenseSplitter() {
               <div className="flex justify-between items-center mb-6">
                 <button onClick={() => setView("list")} className="flex items-center gap-1 text-gray-400 text-sm"><ArrowLeft className="w-4 h-4" /> 返回</button>
                 <button onClick={saveToCloud} className="text-indigo-600 text-sm font-bold flex items-center gap-1">
-                  {autoSaving ? "儲存中..." : <><Save className="w-4 h-4" /> 儲存雲端</>}
+                  {autoSaving ? "儲存中..." : <><Save className="w-4 h-4" /> 儲存</>}
                 </button>
               </div>
               <input className="text-2xl font-black w-full mb-6 border-b-2 border-transparent focus:border-indigo-100 outline-none pb-2" placeholder="行程名稱..." value={recordName} onChange={(e) => setRecordName(e.target.value)} />
@@ -280,3 +280,4 @@ export default function ExpenseSplitter() {
     </div>
   );
 }
+
