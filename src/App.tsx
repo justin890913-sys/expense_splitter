@@ -13,7 +13,11 @@ function App() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
+    // 這裡確保全局監聽登入狀態
+    const unsub = onAuthStateChanged(auth, (u) => {
+      console.log("App 登入狀態改變:", u?.email);
+      setUser(u);
+    });
     return () => unsub();
   }, []);
 
@@ -97,3 +101,4 @@ function App() {
 }
 
 export default App;
+
