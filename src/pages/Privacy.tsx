@@ -8,7 +8,7 @@ export default function Privacy() {
           <section>
             <p>
               本網站為「費用分攤計算器」工具（以下簡稱「本服務」），提供使用者進行費用紀錄與分攤計算。
-              我們非常重視您的隱私，本服務**絕不會要求或儲存**您的身分證字號、信用卡卡號或銀行帳戶密碼等敏感資訊。
+              我們非常重視您的隱私，本服務絕不會要求或儲存您的身分證字號、信用卡卡號或銀行帳戶密碼等敏感資訊。
             </p>
           </section>
 
@@ -52,9 +52,10 @@ export default function Privacy() {
         </div>
 
         <div className="mt-8 pt-6 border-t text-center text-sm text-gray-400">
-          最後更新日期：2024年
+          最後更新日期：2026年
         </div>
       </div>
     </div>
   );
 }
+
