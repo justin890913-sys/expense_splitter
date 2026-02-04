@@ -261,42 +261,31 @@ export default function ExpenseSplitter() {
                 <Calculator className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600" />
                 <h1 className="text-lg sm:text-2xl font-bold text-gray-800">費用分攤計算器</h1>
               </div>
-              <div className="flex items-center gap-2">
-                {user ? (
-                  <div className="flex items-center gap-2">
-                    <img src={user.photoURL} alt="avatar" className="w-8 h-8 rounded-full border" />
-                    <button onClick={handleLogout} className="text-xs font-bold text-gray-400 hover:text-red-500">登出</button>
-                  </div>
-                ) : (
-                  <button onClick={handleLogin} className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-700 transition flex items-center gap-1">
-                    <LogIn className="w-3 h-3" /> Google 登入
-                  </button>
-                )}
-                <button
-                  onClick={createNewRecord}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  新增計算
-                </button>
-              </div>
+              
+              {/* 這裡只保留「新增計算」按鈕，其餘登入 UI 已移至頂端導覽列 */}
+              <button
+                onClick={createNewRecord}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-bold shadow-md transition-all active:scale-95"
+              >
+                <PlusCircle className="w-4 h-4" />
+                新增計算
+              </button>
             </div>
 
             <div>
               <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-4">所有計算紀錄</h2>
+              
               {!user ? (
-                <div className="text-center py-12 border-2 border-dashed rounded-2xl bg-white/50">
+                /* 當使用者未登入時，顯示簡單的提示 */
+                <div className="text-center py-12 border-2 border-dashed rounded-2xl bg-gray-50/50">
                   <Cloud className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 mb-4 font-medium">請先登入以同步雲端紀錄</p>
-                  <button onClick={handleLogin} className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:scale-105 transition active:scale-95">
-                    使用 Google 帳號登入
-                  </button>
+                  <p className="text-gray-500 font-medium">請由上方導覽列登入以同步雲端紀錄</p>
                 </div>
               ) : records.length === 0 ? (
                 <div className="text-center py-12">
                   <Calculator className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500 mb-4">尚無計算紀錄</p>
-                  <button onClick={createNewRecord} className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                  <button onClick={createNewRecord} className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all">
                     <PlusCircle className="w-4 h-4" />
                     建立第一個計算
                   </button>
@@ -322,7 +311,7 @@ export default function ExpenseSplitter() {
                           e.stopPropagation();
                           setDeleteConfirm(record);
                         }}
-                        className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition self-stretch flex items-center justify-center"
+                        className="px-3 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-600 hover:text-white transition-all self-stretch flex items-center justify-center"
                         title="刪除"
                       >
                         <Trash2 className="w-5 h-5" />
@@ -334,18 +323,19 @@ export default function ExpenseSplitter() {
             </div>
           </div>
 
+          {/* 刪除確認 Modal 保持不變 */}
           {deleteConfirm && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full">
+              <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full animate-in fade-in zoom-in duration-200">
                 <h3 className="text-lg font-bold text-gray-800 mb-2">確認刪除</h3>
                 <p className="text-gray-600 mb-6">
                   確定要刪除「<span className="font-semibold">{deleteConfirm.name}</span>」嗎？此操作無法復原。
                 </p>
                 <div className="flex gap-3">
-                  <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition">
+                  <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition">
                     取消
                   </button>
-                  <button onClick={() => deleteRecord(deleteConfirm.id)} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                  <button onClick={() => deleteRecord(deleteConfirm.id)} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition shadow-lg shadow-red-100">
                     確定刪除
                   </button>
                 </div>
@@ -610,4 +600,5 @@ export default function ExpenseSplitter() {
     </div>
   );
 }
+
 
