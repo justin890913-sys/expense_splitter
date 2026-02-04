@@ -54,9 +54,14 @@ export default function ExpenseSplitter({ user }: { user: any }) {
 
   // 保留原始函數邏輯，但登入由 App.tsx 導覽列觸發
   const handleLogin = async () => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (e) {
+      if (isMobile) {
+        await signInWithRedirect(auth, googleProvider);
+      } else {
+        await signInWithPopup(auth, googleProvider);
+      }
+    } catch (e: any) {
       alert("登入失敗: " + e.message);
     }
   };
@@ -598,3 +603,4 @@ export default function ExpenseSplitter({ user }: { user: any }) {
     </div>
   );
 }
+
