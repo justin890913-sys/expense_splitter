@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { auth, googleProvider } from "./firebase";
-import { signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged } from "firebase/auth";
+import { 
+  signInWithPopup, 
+  signInWithRedirect, 
+  signOut, 
+  onAuthStateChanged, 
+  getRedirectResult 
+} from "firebase/auth";
 import { LogIn, LogOut } from 'lucide-react';
 
 import ExpenseSplitter from './components/ExpenseSplitter';
@@ -13,24 +19,50 @@ function App() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
+    // 1. 監聽全域登入狀態
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+    });
+
+    // 2. 關鍵：接住手機版 Redirect 跳轉回來的結果
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          console.log("跳轉登入成功");
+        }
+      })
+      .catch((error) => {
+        console.error("跳轉結果處理失敗", error);
+      });
+
     return () => unsub();
   }, []);
 
   const handleLogin = async () => {
+    // 偵測包含 LINE 和 FB 的環境
     const isMobile = /iPhone|iPad|iPod|Android|Line|FBAN|FBAV/i.test(navigator.userAgent);
     try {
       if (isMobile) {
+        // 手機版：強制跳轉
         await signInWithRedirect(auth, googleProvider);
       } else {
+        // 電腦版：彈出視窗
         await signInWithPopup(auth, googleProvider);
       }
     } catch (e) {
       console.error("登入失敗", e);
+      alert("登入出現問題，請嘗試使用外部瀏覽器（如 Chrome/Safari）開啟。");
     }
   };
 
-  const handleLogout = () => signOut(auth);
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch (e) {
+      console.error("登出失敗", e);
+    }
+  };
 
   return (
     <Router>
@@ -54,11 +86,12 @@ function App() {
                 <Link to="/contact" className="hover:text-indigo-600 transition-colors">聯絡我們</Link>
               </div>
 
-              {/* 登入/登出按鈕放置於此 */}
               <div className="pl-4 border-l border-gray-200 flex items-center">
                 {user ? (
                   <div className="flex items-center gap-3 group">
-                    <img src={user.photoURL} alt="avatar" className="w-8 h-8 rounded-full border border-gray-200" />
+                    {user.photoURL && (
+                      <img src={user.photoURL} alt="avatar" className="w-8 h-8 rounded-full border border-gray-200" />
+                    )}
                     <button 
                       onClick={handleLogout}
                       className="text-xs font-bold text-gray-400 hover:text-red-500 flex items-center gap-1 transition-colors"
@@ -81,7 +114,8 @@ function App() {
 
         <main className="flex-grow">
           <Routes>
-            <Route path="/" element={<ExpenseSplitter />} />
+            {/* 這裡必須要把 user 傳下去，否則 ExpenseSplitter 不知道登入狀態 */}
+            <Route path="/" element={<ExpenseSplitter user={user} />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<Privacy />} />
