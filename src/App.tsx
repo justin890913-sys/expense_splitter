@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { auth, googleProvider } from "./firebase";
-import { 
-  signInWithPopup, 
-  signInWithRedirect, 
-  signOut, 
-  onAuthStateChanged, 
-  getRedirectResult 
-} from "firebase/auth";
+import { auth } from "./firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { LogIn, LogOut } from 'lucide-react';
 
 import ExpenseSplitter from './components/ExpenseSplitter';
@@ -19,50 +13,28 @@ function App() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    // 1. 監聽全域登入狀態
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-    });
-
-    // 2. 關鍵：接住手機版 Redirect 跳轉回來的結果
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-          console.log("跳轉登入成功");
-        }
-      })
-      .catch((error) => {
-        console.error("跳轉結果處理失敗", error);
-      });
-
+    // 監聽 Firebase 登入狀態，這會自動偵測不論是從哪邊觸發的登入
+    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
     return () => unsub();
   }, []);
 
-  const handleLogin = async () => {
-    // 偵測包含 LINE 和 FB 的環境
-    const isMobile = /iPhone|iPad|iPod|Android|Line|FBAN|FBAV/i.test(navigator.userAgent);
-    try {
-      if (isMobile) {
-        // 手機版：強制跳轉
-        await signInWithRedirect(auth, googleProvider);
-      } else {
-        // 電腦版：彈出視窗
-        await signInWithPopup(auth, googleProvider);
-      }
-    } catch (e) {
-      console.error("登入失敗", e);
-      alert("登入出現問題，請嘗試使用外部瀏覽器（如 Chrome/Safari）開啟。");
+  // 修改後的 handleLogin：直接觸發畫面中間那個按鈕的點擊事件
+  const handleLogin = () => {
+    // 透過 ID 或是屬性找到 ExpenseSplitter 裡面的那個 Google 登入按鈕
+    // 因為你的 ExpenseSplitter 裡面通常會有一個含有 "Google" 字樣的按鈕
+    const mainLoginBtn = Array.from(document.querySelectorAll('button')).find(btn => 
+      btn.textContent?.includes('使用 Google 帳號登入')
+    );
+
+    if (mainLoginBtn) {
+      (mainLoginBtn as HTMLButtonElement).click();
+    } else {
+      // 如果沒找到按鈕（例如在其他頁面），則提示使用者回到首頁
+      window.location.href = '/';
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      setUser(null);
-    } catch (e) {
-      console.error("登出失敗", e);
-    }
-  };
+  const handleLogout = () => signOut(auth);
 
   return (
     <Router>
@@ -76,7 +48,7 @@ function App() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
               </div>
-              <span className="font-bold text-xl text-gray-800 tracking-tight hidden sm:block">分錢小幫手</span>
+              <span className="font-bold text-xl text-gray-800 tracking-tight hidden sm:block">分帳小幫手</span>
             </Link>
 
             <div className="flex items-center gap-4 sm:gap-6">
@@ -114,8 +86,7 @@ function App() {
 
         <main className="flex-grow">
           <Routes>
-            {/* 這裡必須要把 user 傳下去，否則 ExpenseSplitter 不知道登入狀態 */}
-            <Route path="/" element={<ExpenseSplitter user={user} />} />
+            <Route path="/" element={<ExpenseSplitter />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<Privacy />} />
