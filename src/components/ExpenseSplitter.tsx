@@ -6,8 +6,11 @@ import { auth, db, googleProvider } from "../firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { collection, query, where, getDocs, setDoc, doc, orderBy, getDoc, deleteDoc } from "firebase/firestore";
 
-export default function ExpenseSplitter() {
-  const [user, setUser] = useState(null);
+// 修正：接收來自 App.tsx 的 user prop
+export default function ExpenseSplitter({ user }: { user: any }) {
+  // 修正：移除內部的 user state，改用從 Props 傳入的 user
+  // const [user, setUser] = useState(null); 
+  
   const [view, setView] = useState('list'); // 'list' or 'editor'
   const [currentId, setCurrentId] = useState(null);
   const [records, setRecords] = useState([]);
@@ -21,18 +24,14 @@ export default function ExpenseSplitter() {
 
   const banks = ['台灣銀行', '土地銀行', '合作金庫', '第一銀行', '華南銀行', '彰化銀行', '兆豐銀行', '台灣企銀', '國泰世華', '中國信託', '玉山銀行', '台北富邦', '國泰銀行', '高雄銀行', '台新銀行', '永豐銀行', '聯邦銀行', '遠東銀行', '元大銀行', '其他'];
 
-  // 監聽登入狀態
+  // 修正：監聽從 App.tsx 傳進來的 user 變化
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      if (u) {
-        loadRecordsList(u.uid);
-      } else {
-        setRecords([]);
-      }
-    });
-    return () => unsub();
-  }, []);
+    if (user) {
+      loadRecordsList(user.uid);
+    } else {
+      setRecords([]);
+    }
+  }, [user]); // 當外部 user 狀態改變時，觸發資料載入
 
   // 自動儲存計時器
   useEffect(() => {
@@ -53,6 +52,7 @@ export default function ExpenseSplitter() {
     }
   }, []);
 
+  // 保留原始函數邏輯，但登入由 App.tsx 導覽列觸發
   const handleLogin = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
@@ -262,7 +262,6 @@ export default function ExpenseSplitter() {
                 <h1 className="text-lg sm:text-2xl font-bold text-gray-800">費用分攤計算器</h1>
               </div>
               
-              {/* 這裡只保留「新增計算」按鈕，其餘登入 UI 已移至頂端導覽列 */}
               <button
                 onClick={createNewRecord}
                 className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-bold shadow-md transition-all active:scale-95"
@@ -276,7 +275,6 @@ export default function ExpenseSplitter() {
               <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-4">所有計算紀錄</h2>
               
               {!user ? (
-                /* 當使用者未登入時，顯示簡單的提示 */
                 <div className="text-center py-12 border-2 border-dashed rounded-2xl bg-gray-50/50">
                   <Cloud className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500 font-medium">請由上方導覽列登入以同步雲端紀錄</p>
@@ -323,7 +321,6 @@ export default function ExpenseSplitter() {
             </div>
           </div>
 
-          {/* 刪除確認 Modal 保持不變 */}
           {deleteConfirm && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full animate-in fade-in zoom-in duration-200">
@@ -369,41 +366,42 @@ export default function ExpenseSplitter() {
               className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
             />
             <button
-    onClick={saveRecord}
-    disabled={autoSaving}
-    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-      saveSuccess 
-        ? 'bg-green-100 text-green-700 border border-green-500' // 儲存成功後的樣式
-        : autoSaving 
-          ? 'bg-gray-400 cursor-not-allowed text-white' 
-          : 'bg-green-600 hover:bg-green-700 text-white shadow-md active:scale-95'
-    }`}
-  >
-    {autoSaving ? (
-      <>
-        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-        儲存中...
-      </>
-    ) : saveSuccess ? (
-      <>
-        <Check className="w-4 h-4" />
-        已更新計算
-      </>
-    ) : currentId ? (
-      <>
-        <Save className="w-4 h-4" />
-        更新計算紀錄
-      </>
-    ) : (
-      <>
-        <Cloud className="w-4 h-4" />
-        儲存到雲端
-      </>
-    )}
-  </button>
+              onClick={saveRecord}
+              disabled={autoSaving}
+              className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                saveSuccess 
+                  ? 'bg-green-100 text-green-700 border border-green-500' 
+                  : autoSaving 
+                    ? 'bg-gray-400 cursor-not-allowed text-white' 
+                    : 'bg-green-600 hover:bg-green-700 text-white shadow-md active:scale-95'
+              }`}
+            >
+              {autoSaving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  儲存中...
+                </>
+              ) : saveSuccess ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  已更新計算
+                </>
+              ) : currentId ? (
+                <>
+                  <Save className="w-4 h-4" />
+                  更新計算紀錄
+                </>
+              ) : (
+                <>
+                  <Cloud className="w-4 h-4" />
+                  儲存到雲端
+                </>
+              )}
+            </button>
           </div>
         </div>
 
+        {/* 餘下組件部分保持原始邏輯 ... */}
         <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 mb-4">
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
@@ -600,5 +598,3 @@ export default function ExpenseSplitter() {
     </div>
   );
 }
-
-
